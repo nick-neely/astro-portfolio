@@ -44,7 +44,7 @@ if (Astro.request.method === "POST") {
 
     // If there are no errors, verify the email address
     if (!Object.values(errors).some((error) => error.length > 0)) {
-      client.sandbox(email, function (err, response) {
+      client.verify(email, function (err, response) {
         // Print response object
         console.log(response.body);
 
