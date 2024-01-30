@@ -49,7 +49,7 @@ if (Astro.request.method === "POST") {
         console.log(response.body);
 
         if (response.body.result !== "valid") {
-          errors.email += "Email is not valid";
+          errors.email = "Email is not valid";
         } else {
           // Constructing the email message
           const msg = {
