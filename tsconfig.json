@@ -2,7 +2,7 @@
   "extends": "astro/tsconfigs/base",
   "compilerOptions": {
     "strictNullChecks": true,
-    "baseUrl": ".",
+    "baseUrl": "C:/Users/Hades/OneDrive - Indian Hills Community College/Web Development/astro-portfolio",
     "paths": {
       "@components/*": [
         "src/components/*"
@@ -10,6 +10,8 @@
       "@layouts/*": [
         "src/layouts/*"
       ]
-    }
+    },
+    "jsx": "react-jsx",
+    "jsxImportSource": "react"
   }
 }

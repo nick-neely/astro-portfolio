@@ -1,0 +1,189 @@
+---
+export const prerender = true;
+import BaseLayout from "../layouts/BaseLayout.astro";
+
+import formData from "form-data";
+import Mailgun from "mailgun.js";
+import quickemailverification from "quickemailverification";
+import { isValidEmail } from "../lib/utils";
+
+//TODO: Implement Captcha
+//TODO: Implement Rate Limiting
+
+// Initialize Mailgun client
+const mailgun = new Mailgun(formData);
+const mg = mailgun.client({
+  username: "api",
+  key: import.meta.env.MAILGUN_API_KEY,
+});
+
+const client = quickemailverification
+  .client(import.meta.env.VALIDATE_EMAIL_KEY)
+  .quickemailverification();
+
+const errors = { name: "", email: "", message: "" };
+
+if (Astro.request.method === "POST") {
+  try {
+    // Getting posted data from the contact form
+    const data = await Astro.request.formData();
+    const name = data.get("name") as string;
+    const email = data.get("email") as string;
+    const message = data.get("message") as string;
+
+    // Validate form data
+    if (typeof name !== "string" || name.length < 3) {
+      errors.name += "Name must be at least 3 characters long";
+    }
+    if (typeof email !== "string" || !isValidEmail(email)) {
+      errors.email += "Email must be at least 3 characters long";
+    }
+    if (typeof message !== "string" || message.length < 3) {
+      errors.message += "Message must be at least 3 characters long";
+    }
+
+    // If there are no errors, verify the email address
+    if (!Object.values(errors).some((error) => error.length > 0)) {
+      client.sandbox(email, function (err, response) {
+        // Print response object
+        console.log(response.body);
+
+        if (response.body.result !== "valid") {
+          errors.email += "Email is not valid";
+        } else {
+          // Constructing the email message
+          const msg = {
+            from: `${name} <${email}>`,
+            to: "contact@nickneely.dev",
+            cc: email || undefined,
+            subject: `Portfolio Contact Submission`,
+            text: message,
+            html: `<p>${message}</p>`,
+          };
+
+          // Sending email
+          mg.messages
+            .create("mail.nickneely.dev", msg)
+            .then(() => {
+              console.log("Email sent");
+            })
+            .catch((error) => {
+              console.error("Failed to send email", error);
+            });
+        }
+      });
+    }
+  } catch (error) {
+    console.error(error);
+  }
+}
+---
+
+<BaseLayout title="Contact" sideBarActiveItemID="contact">
+  <div class="flex items-center justify-center lg:mt-24 sm:mt-0 md:mt-16">
+    <div class="card lg:w-screen md:w-100 bg-base-100 shadow-xl mx-auto">
+      <div class="card-body">
+        <h2 class="card-title">Contact Me</h2>
+        <form method="POST">
+          <div class="form-control">
+            <label class="label">
+              <span class="label-text">Name</span>
+            </label>
+            {
+              errors.name && (
+                <div role="alert" class="alert alert-error mb-3">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="stroke-current shrink-0 h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                  <span>{errors.name}</span>
+                </div>
+              )
+            }
+            <input
+              type="text"
+              name="name"
+              placeholder="Name"
+              class="input input-bordered"
+              required
+            />
+          </div>
+          <div class="form-control">
+            <label class="label">
+              <span class="label-text">Your Email</span>
+            </label>
+            {
+              errors.email && (
+                <div role="alert" class="alert alert-error mb-3">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="stroke-current shrink-0 h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                  <span>{errors.email}</span>
+                </div>
+              )
+            }
+            <input
+              type="email"
+              name="email"
+              placeholder="Email"
+              class="input input-bordered"
+              required
+            />
+          </div>
+          <div class="form-control">
+            <label class="label">
+              <span class="label-text">Message</span>
+            </label>
+            {
+              errors.message && (
+                <div role="alert" class="alert alert-error mb-3">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="stroke-current shrink-0 h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                  <span>{errors.message}</span>
+                </div>
+              )
+            }
+            <textarea
+              name="message"
+              class="textarea textarea-bordered"
+              placeholder="Message"
+              required></textarea>
+          </div>
+          <div class="form-control mt-6">
+            <button class="btn btn-primary" type="submit">Send</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</BaseLayout>
